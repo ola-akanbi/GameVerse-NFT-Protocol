@@ -146,3 +146,44 @@
     achievements: (list 20 (string-ascii 50))
   }
 )
+
+;; Utility Functions
+(define-read-only (is-protocol-admin (sender principal))
+  (default-to false (map-get? protocol-admin-whitelist sender))
+)
+
+(define-read-only (is-valid-principal (input principal))
+  (and 
+    (not (is-eq input tx-sender))
+    (not (is-eq input (as-contract tx-sender)))
+  )
+)
+
+(define-read-only (is-safe-principal (input principal))
+  (and 
+    (is-valid-principal input)
+    (or 
+      (is-protocol-admin input)
+      (is-some (map-get? leaderboard { player: input }))
+    )
+  )
+)
+
+(define-read-only (get-world-details (world-id uint))
+  (map-get? game-worlds { world-id: world-id })
+)
+
+(define-read-only (get-avatar-details (avatar-id uint))
+  (map-get? avatar-metadata { avatar-id: avatar-id })
+)
+
+(define-read-only (get-top-players)
+  (let 
+    (
+      (max-entries (var-get max-leaderboard-entries))
+    )
+    (list 
+      tx-sender
+    )
+  )
+)
