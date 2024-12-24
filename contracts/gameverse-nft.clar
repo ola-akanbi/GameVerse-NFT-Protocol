@@ -364,3 +364,33 @@
     (ok world-id)
   )
 )
+
+;; Leaderboard Management
+(define-public (update-player-score 
+  (player principal) 
+  (new-score uint)
+)
+  (let 
+    (
+      (current-stats (unwrap! 
+        (map-get? leaderboard { player: player }) 
+        ERR-PLAYER-NOT-FOUND
+      ))
+    )
+    (asserts! (is-protocol-admin tx-sender) ERR-NOT-AUTHORIZED)
+    (asserts! (is-valid-principal player) ERR-INVALID-INPUT)
+    (asserts! (and (>= new-score u0) (<= new-score u10000)) ERR-INVALID-SCORE)
+    
+    (map-set leaderboard 
+      { player: player }
+      (merge current-stats 
+        {
+          score: new-score,
+          games-played: (+ (get games-played current-stats) u1)
+        }
+      )
+    )
+    
+    (ok true)
+  )
+)
