@@ -423,3 +423,30 @@
     false
   )
 )
+
+(define-private (distribute-reward 
+  (player principal) 
+  (previous-result (response bool uint))
+)
+  (match (map-get? leaderboard { player: player })
+    player-stats 
+      (let 
+        (
+          (reward-amount (calculate-reward (get score player-stats)))
+        )
+        (if (and (is-ok previous-result) (> reward-amount u0))
+          (begin
+            (map-set leaderboard 
+              { player: player }
+              (merge player-stats 
+                { total-rewards: (+ (get total-rewards player-stats) reward-amount) }
+              )
+            )
+            (ok true)
+          )
+          previous-result
+        )
+      )
+    previous-result
+  )
+)
