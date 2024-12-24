@@ -90,3 +90,34 @@
 (define-private (check-world-exists (world-id uint) (valid bool))
   (and valid (is-some (get-world-details world-id)))
 )
+
+;; NFT Definitions
+(define-non-fungible-token gameverse-asset uint)
+(define-non-fungible-token player-avatar uint)
+
+;; Enhanced Asset Metadata Map
+(define-map gameverse-asset-metadata 
+  { token-id: uint }
+  { 
+    name: (string-ascii 50),
+    description: (string-ascii 200),
+    rarity: (string-ascii 20),
+    power-level: uint,
+    world-id: uint,
+    attributes: (list 10 (string-ascii 20)),
+    experience: uint,
+    level: uint
+  }
+)
+
+;; Player Avatar Map
+(define-map avatar-metadata
+  { avatar-id: uint }
+  {
+    name: (string-ascii 50),
+    level: uint,
+    experience: uint,
+    achievements: (list 20 (string-ascii 50)),
+    equipped-assets: (list 5 uint),
+    world-access: (list 10 uint)
+  })
