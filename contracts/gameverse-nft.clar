@@ -4,7 +4,6 @@
 ;; It includes functionalities for minting and transferring NFTs, managing player avatars, tracking achievements, 
 ;; and distributing rewards across multiple game worlds.
 
-
 ;; Constants
 (define-constant ERR-NOT-AUTHORIZED (err u1))
 (define-constant ERR-INVALID-GAME-ASSET (err u2))
@@ -36,9 +35,7 @@
 (define-constant MAX-EXPERIENCE-PER-LEVEL u1000)
 (define-constant BASE-EXPERIENCE-REQUIRED u100)
 
-
 ;; Protocol Configuration
-
 (define-data-var protocol-fee uint u10)
 (define-data-var max-leaderboard-entries uint u50)
 (define-data-var total-prize-pool uint u0)
@@ -50,7 +47,6 @@
 (define-map protocol-admin-whitelist principal bool)
 
 ;; Input Validation Functions
-
 (define-private (is-valid-name (name (string-ascii 50)))
   (and 
     (>= (len name) u1)
@@ -241,9 +237,7 @@
   )
 )
 
-;; ===================
 ;; Asset Management
-;; ===================
 (define-public (mint-gameverse-asset 
     (name (string-ascii 50))
     (description (string-ascii 200))
