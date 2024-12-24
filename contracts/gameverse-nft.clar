@@ -311,3 +311,25 @@
     (ok avatar-id)
   )
 )
+
+(define-public (update-avatar-experience
+    (avatar-id uint)
+    (experience-gained uint)
+  )
+  (let
+    ((current-metadata (unwrap! (get-avatar-details avatar-id) ERR-INVALID-AVATAR)))
+    (asserts! (is-protocol-admin tx-sender) ERR-NOT-AUTHORIZED)
+    (asserts! (>= experience-gained u0) ERR-INVALID-INPUT)
+    
+    (map-set avatar-metadata
+      { avatar-id: avatar-id }
+      (merge current-metadata
+        {
+          experience: (+ (get experience current-metadata) experience-gained),
+          level: (+ (get level current-metadata) u1)
+        }
+      )
+    )
+    (ok true)
+  )
+)
