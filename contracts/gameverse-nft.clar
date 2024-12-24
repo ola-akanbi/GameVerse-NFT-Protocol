@@ -450,3 +450,10 @@
     previous-result
   )
 )
+
+(define-private (calculate-reward (score uint))
+  (if (and (> score u100) (<= score u10000))
+    (* score u10)
+    u0
+  )
+)
