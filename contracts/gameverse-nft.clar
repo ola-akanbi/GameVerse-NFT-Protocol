@@ -26,3 +26,16 @@
 (define-constant ERR-INVALID-POWER-LEVEL (err u18))
 (define-constant ERR-INVALID-ATTRIBUTES (err u19))
 (define-constant ERR-INVALID-WORLD-ACCESS (err u20))
+
+
+;; Protocol Configuration
+
+(define-data-var protocol-fee uint u10)
+(define-data-var max-leaderboard-entries uint u50)
+(define-data-var total-prize-pool uint u0)
+(define-data-var total-assets uint u0)
+(define-data-var total-avatars uint u0)
+(define-data-var total-worlds uint u0)
+
+;; Protocol Administrator Whitelist
+(define-map protocol-admin-whitelist principal bool)
