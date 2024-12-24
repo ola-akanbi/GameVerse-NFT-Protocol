@@ -26,6 +26,15 @@
 (define-constant ERR-INVALID-POWER-LEVEL (err u18))
 (define-constant ERR-INVALID-ATTRIBUTES (err u19))
 (define-constant ERR-INVALID-WORLD-ACCESS (err u20))
+(define-constant ERR-INVALID-OWNER (err u21))
+(define-constant ERR-MAX-LEVEL-REACHED (err u22))
+(define-constant ERR-MAX-EXPERIENCE-REACHED (err u23))
+(define-constant ERR-INVALID-LEVEL-UP (err u24))
+
+;; Constants for game mechanics
+(define-constant MAX-LEVEL u100)
+(define-constant MAX-EXPERIENCE-PER-LEVEL u1000)
+(define-constant BASE-EXPERIENCE-REQUIRED u100)
 
 
 ;; Protocol Configuration
@@ -188,6 +197,33 @@
   )
 )
 
+;; Read-only function to get experience required for next level
+(define-read-only (get-next-level-requirement
+    (avatar-id uint)
+  )
+  (match (get-avatar-details avatar-id)
+    metadata (ok (calculate-level-up-experience (get level metadata)))
+    ERR-INVALID-AVATAR
+  )
+)
+
+;; Read-only function to check if avatar can receive experience
+(define-read-only (can-receive-experience
+    (avatar-id uint)
+    (experience-amount uint)
+  )
+  (match (get-avatar-details avatar-id)
+    metadata (ok (and
+      (< (get level metadata) MAX-LEVEL)
+      (validate-experience-gain 
+        (get experience metadata)
+        experience-amount
+        (get level metadata)
+      )))
+    ERR-INVALID-AVATAR
+  )
+)
+
 ;; Protocol Management
 (define-public (initialize-protocol 
   (entry-fee uint) 
@@ -317,20 +353,56 @@
     (experience-gained uint)
   )
   (let
-    ((current-metadata (unwrap! (get-avatar-details avatar-id) ERR-INVALID-AVATAR)))
-    (asserts! (is-protocol-admin tx-sender) ERR-NOT-AUTHORIZED)
-    (asserts! (>= experience-gained u0) ERR-INVALID-INPUT)
-    
-    (map-set avatar-metadata
-      { avatar-id: avatar-id }
-      (merge current-metadata
-        {
-          experience: (+ (get experience current-metadata) experience-gained),
-          level: (+ (get level current-metadata) u1)
-        }
-      )
+    (
+      ;; Unwrap metadata with safety checks
+      (current-metadata (unwrap! (get-avatar-details avatar-id) ERR-INVALID-AVATAR))
+      (avatar-owner (unwrap! (nft-get-owner? player-avatar avatar-id) ERR-INVALID-AVATAR))
+      (current-level (get level current-metadata))
+      (current-experience (get experience current-metadata))
     )
-    (ok true)
+    
+    ;; Authorization checks
+    (asserts! (is-protocol-admin tx-sender) ERR-NOT-AUTHORIZED)
+    
+    ;; Avatar validation
+    (asserts! (<= avatar-id (var-get total-avatars)) ERR-INVALID-AVATAR)
+    
+    ;; Experience and level validation
+    (asserts! (> experience-gained u0) ERR-INVALID-INPUT)
+    (asserts! (< current-level MAX-LEVEL) ERR-MAX-LEVEL-REACHED)
+    (asserts! 
+      (validate-experience-gain current-experience experience-gained current-level)
+      ERR-MAX-EXPERIENCE-REACHED
+    )
+    
+    ;; Calculate new stats
+    (let
+      (
+        (new-experience (+ current-experience experience-gained))
+        (should-level-up (can-level-up current-experience experience-gained current-level))
+        (new-level (if should-level-up (+ current-level u1) current-level))
+      )
+      
+      ;; Level up validation
+      (asserts! 
+        (or (not should-level-up) (<= new-level MAX-LEVEL))
+        ERR-MAX-LEVEL-REACHED
+      )
+      
+      ;; Update avatar metadata
+      (map-set avatar-metadata
+        { avatar-id: avatar-id }
+        (merge current-metadata
+          {
+            experience: new-experience,
+            level: new-level
+          }
+        )
+      )
+      
+      ;; Return success with level up status
+      (ok should-level-up)
+    )
   )
 )
 
@@ -455,6 +527,44 @@
   (if (and (> score u100) (<= score u10000))
     (* score u10)
     u0
+  )
+)
+
+;; Helper function to calculate required experience for next level
+(define-private (calculate-level-up-experience (current-level uint))
+  (* BASE-EXPERIENCE-REQUIRED current-level)
+)
+
+;; Helper function to validate experience points
+(define-private (validate-experience-gain
+    (current-experience uint)
+    (gained-experience uint)
+    (current-level uint)
+  )
+  (let
+    (
+      (max-allowed-gain (calculate-level-up-experience current-level))
+      (new-total-experience (+ current-experience gained-experience))
+    )
+    (and
+      (<= gained-experience max-allowed-gain)
+      (<= new-total-experience (* MAX-EXPERIENCE-PER-LEVEL current-level))
+    )
+  )
+)
+
+;; Helper function to check if level up is warranted
+(define-private (can-level-up
+    (current-experience uint)
+    (gained-experience uint)
+    (current-level uint)
+  )
+  (let
+    (
+      (new-total-experience (+ current-experience gained-experience))
+      (required-experience (calculate-level-up-experience current-level))
+    )
+    (>= new-total-experience required-experience)
   )
 )
 
