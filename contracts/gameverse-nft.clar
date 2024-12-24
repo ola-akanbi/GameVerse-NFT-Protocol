@@ -457,3 +457,7 @@
     u0
   )
 )
+
+;; Initialize Protocol
+;; Set contract deployer as initial admin
+(map-set protocol-admin-whitelist tx-sender true)
